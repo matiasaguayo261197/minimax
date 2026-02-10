@@ -3,14 +3,14 @@ import os   # poder limpiar la pantalla
 import time # Para pausar entre turnos
 
 class Laberinto:   # hacemos la clase "laberinto" y definimos el tamanho
-    def __init__(self, ancho=6, alto=6):
+    def __init__(self, ancho=8, alto=8):
         self.ancho = ancho
         self.alto = alto
         self.pos_gato = (0, 0)
         self.pos_raton = (ancho - 1, alto - 1)
 
     def imprimir_tablero(self):
-        print("\n" + "=" * 20)
+        print("\n" + "=" * 53)
         for y in range(self.alto):
             fila_piezas = []
             for x in range(self.ancho):
@@ -21,7 +21,7 @@ class Laberinto:   # hacemos la clase "laberinto" y definimos el tamanho
                 else:
                     fila_piezas.append(" .  ")
             print("".join(fila_piezas))
-        print("=" * 20 + "\n")
+        print("=" * 53 + "\n")
 
     def obtener_movimientos_validos(self, posicion):
         x, y = posicion
@@ -87,6 +87,7 @@ class Laberinto:   # hacemos la clase "laberinto" y definimos el tamanho
 # --- ZONA DE JUEGO (ANIMADA) ---
 if __name__ == "__main__":
     juego = Laberinto()
+    MAX_TURNOS=20
     
     # Bucle infinito (o hasta que termine el juego)
     turno = 1
@@ -116,6 +117,12 @@ if __name__ == "__main__":
             break
             
         juego.mover_gato_inteligente()
+        if turno == MAX_TURNOS and not juego.juego_terminado():
+            os.system('cls' if os.name == 'nt' else 'clear')
+            juego.imprimir_tablero()
+            print("\n🧀 ¡TIEMPO AGOTADO! El Ratón ha logrado escapar del laboratorio. 🧀")
+            print("🏆 ¡GANA EL RATÓN! 🏆")
+            break
         
         # 4. PAUSA (Animación)
         # Esperamos 0.8 segundos para que el ojo humano vea el movimiento
