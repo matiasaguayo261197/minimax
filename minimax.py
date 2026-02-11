@@ -1,27 +1,65 @@
-import random #para movimientos aleatorios
-import os   # poder limpiar la pantalla
-import time # Para pausar entre turnos
+import random 
+import os   
+import time 
 
-class Laberinto:   # hacemos la clase "laberinto" y definimos el tamanho
-    def __init__(self, ancho=8, alto=8):
+class Laberinto:   
+    def __init__(self, ancho=10, alto=10):
         self.ancho = ancho
         self.alto = alto
-        self.pos_gato = (0, 0)
+        self.pos_gato = (5, 5)
         self.pos_raton = (ancho - 1, alto - 1)
-
+        self.pos_salida = (0, 0)
+        # Mapa de Calor 8x8 (o adaptable) para ayudar a la IA
+        self.evaluacion_posicional = [] 
+            
     def imprimir_tablero(self):
-        print("\n" + "=" * 53)
+        print("\n" + "=" * (self.ancho * 3 + 2))
         for y in range(self.alto):
             fila_piezas = []
             for x in range(self.ancho):
                 if (x, y) == self.pos_gato:
-                    fila_piezas.append(" 🐱 ")
+                    fila_piezas.append(" 🐱")
                 elif (x, y) == self.pos_raton:
-                    fila_piezas.append(" 🐭 ")
+                    fila_piezas.append(" 🐭")
+                elif (x, y) == self.pos_salida:
+                    fila_piezas.append(" 🚪")
                 else:
-                    fila_piezas.append(" .  ")
+                    fila_piezas.append(" . ")
             print("".join(fila_piezas))
-        print("=" * 53 + "\n")
+        print("=" * (self.ancho * 3 + 2) + "\n")
+
+    def realizar_movimiento_manual(self, personajes, tecla):
+        direcciones = {
+            'w': (0, -1), # Arriba
+            's': (0, 1),  # Abajo
+            'a': (-1, 0), # Izquierda
+            'd': (1, 0)   # Derecha
+        }
+        
+        if tecla not in direcciones:
+            print('Tecla inválida, usa W, A, S, D.')
+            return
+            
+        dx, dy = direcciones[tecla]
+        
+        # 1. OBTENER POSICIÓN ACTUAL
+        if personajes == 'gato':
+            x, y = self.pos_gato
+        elif personajes == "raton":
+            x, y = self.pos_raton
+        else:
+            return
+
+        nuevo_x, nuevo_y = x + dx, y + dy 
+        
+        # 2. VERIFICAR SI CHOCA CON PAREDES Y ACTUALIZAR
+        if 0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto:
+            if personajes == "gato":
+                self.pos_gato = (nuevo_x, nuevo_y)
+            elif personajes == "raton":
+                self.pos_raton = (nuevo_x, nuevo_y)
+        else:
+            print("🚧 ¡Muro! No puedes avanzar por ahí.")
 
     def obtener_movimientos_validos(self, posicion):
         x, y = posicion
@@ -43,10 +81,20 @@ class Laberinto:   # hacemos la clase "laberinto" y definimos el tamanho
 
     def minimax(self, pos_gato, pos_raton, profundidad, es_turno_gato):
         if pos_gato == pos_raton:
-            return 1000 - profundidad 
+            return 1000 + profundidad 
+        if pos_raton == self.pos_salida:
+            return -1000 - profundidad # Negativo porque es bueno para raton (minimizador)
+
         if profundidad == 0:
-            return -self.distancia_manhattan(pos_gato, pos_raton)
+            dist_gato_raton = self.distancia_manhattan(pos_gato, pos_raton)
+            dist_salida = self.distancia_manhattan(pos_raton, self.pos_salida)
             
+            # El gato quiere minimizar distancia al raton y maximizar distancia a salida
+            # El raton quiere maximizar distancia al gato y minimizar distancia a salida
+            # Formula: (Cerca Ratón) + (Ratón Lejos Salida)
+            puntaje = -dist_gato_raton + (dist_salida * 2)
+            return puntaje
+
         if es_turno_gato:
             max_puntuacion = -float('inf')
             movimientos = self.obtener_movimientos_validos(pos_gato)
@@ -64,68 +112,119 @@ class Laberinto:   # hacemos la clase "laberinto" y definimos el tamanho
 
     def mover_gato_inteligente(self):
         mejor_puntaje = -float('inf')
-        mejor_movimiento = self.pos_gato
+        mejores_opciones = []
         opciones = self.obtener_movimientos_validos(self.pos_gato)
         
         for opcion in opciones:
-            puntaje = self.minimax(opcion, self.pos_raton, 4, False)
+            # --- CORRECCIÓN CRÍTICA AQUÍ: Cambiamos 42 por 4 ---
+            puntaje = self.minimax(opcion, self.pos_raton, 2, False)
             if puntaje > mejor_puntaje:
                 mejor_puntaje = puntaje
-                mejor_movimiento = opcion
-        self.pos_gato = mejor_movimiento
+                mejores_opciones = [opcion]
+            elif puntaje == mejor_puntaje:
+                mejores_opciones.append(opcion)
+        if mejores_opciones:        
+            self.pos_gato = random.choice(mejores_opciones)
 
-    def mover_raton_aleatorio(self):
+    def mover_raton_inteligente(self):
+        mejor_puntaje = float('inf')
+        mejores_opciones = []
         opciones = self.obtener_movimientos_validos(self.pos_raton)
-        if opciones:
-            self.pos_raton = random.choice(opciones)
+        
+        # Instinto de supervivencia: Si ve la salida, la toma
+        if self.pos_salida in opciones:
+            self.pos_raton = self.pos_salida
+            return
+        
+        for opcion in opciones:
+            puntaje = self.minimax(self.pos_gato, opcion, 4, True)
+            if puntaje < mejor_puntaje:
+                mejor_puntaje = puntaje
+                mejores_opciones = [opcion]
+            elif puntaje == mejor_puntaje:
+                mejores_opciones.append(opcion)
+        if mejores_opciones:
+            self.pos_raton = random.choice(mejores_opciones)
 
     def juego_terminado(self):
         if self.pos_gato == self.pos_raton:
             return True
+        if self.pos_raton == self.pos_salida:
+            return True
         return False
 
-# --- ZONA DE JUEGO (ANIMADA) ---
+# --- ZONA DE JUEGO ---
 if __name__ == "__main__":
     juego = Laberinto()
-    MAX_TURNOS=20
-    
-    # Bucle infinito (o hasta que termine el juego)
+    MAX_TURNOS = 30
     turno = 1
-    while True:
-        # 1. BORRAR PANTALLA
-        # Este comando detecta si estas en Windows ('nt') y usa 'cls', 
-        # o si estas en Mac/Linux y usa 'clear'.
+    
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("\n🧀 --- BIENVENIDO AL LABERINTO --- 🐱")
+    print("1. Jugar como el GATO (Cazar al Ratón IA)")
+    print("2. Jugar como el RATÓN (Escapar del Gato IA)")
+    print("3. Modo Espectador (IA vs IA)")
+    
+    modo = input("\nElige una opción (1, 2 o 3): ")
+    
+    while turno <= MAX_TURNOS:
         os.system('cls' if os.name == 'nt' else 'clear')
         
-        print(f"--- TURNO {turno} ---")
+        print(f"--- TURNO {turno} de {MAX_TURNOS} ---")
         juego.imprimir_tablero()
         
-        # 2. Verificamos si ya terminó antes de mover
         if juego.juego_terminado():
-            print("\n🏁 ¡JUEGO TERMINADO! El gato atrapó al ratón. 🏁")
+            if juego.pos_raton == juego.pos_salida:
+                print("\n🚪 ¡EL RATÓN HA ESCAPADO! ¡VICTORIA! 🚪")
+            else:
+                print("\n🏁 ¡EL GATO ATRAPÓ AL RATÓN! 🏁")
             break
-            
-        # 3. Mueven los personajes
-        juego.mover_raton_aleatorio()
-        
-        # Verificamos otra vez por si el ratón chocó con el gato
+
+        # --- TURNO DEL RATÓN ---
+        if modo == "2": # Tu eres el Ratón
+            move = input("Tu turno Ratón (WASD + Enter): ").lower()
+            juego.realizar_movimiento_manual("raton", move)
+        elif modo == "1" or modo == "3": # La IA es el Ratón
+            juego.mover_raton_inteligente()
+
         if juego.juego_terminado():
-            # Limpiamos una ultima vez para ver el choque
+            if juego.pos_raton == juego.pos_salida:
+                os.system('cls' if os.name == 'nt' else 'clear')
+                print(f"--- TURNO {turno} ---")
+                juego.imprimir_tablero()
+                print("\n🚪 ¡EL RATÓN HA ESCAPADO! ¡VICTORIA! 🚪")
+                break
+            elif juego.pos_gato == juego.pos_raton:
+                 os.system('cls' if os.name == 'nt' else 'clear')
+                 juego.imprimir_tablero()
+                 print("\n🏁 ¡EL RATÓN CHOCÓ CON EL GATO! 🏁")
+                 break
+
+        # --- TURNO DEL GATO ---
+        if modo == "1": # Tu eres el Gato
             os.system('cls' if os.name == 'nt' else 'clear')
+            print(f"--- TURNO {turno} de {MAX_TURNOS} ---")
             juego.imprimir_tablero()
-            print("\n🏁 ¡El Ratón chocó con el Gato! GANA EL GATO. 🏁")
-            break
+            move = input("Tu turno Gato (WASD + Enter): ").lower()
+            juego.realizar_movimiento_manual("gato", move)
             
-        juego.mover_gato_inteligente()
-        if turno == MAX_TURNOS and not juego.juego_terminado():
-            os.system('cls' if os.name == 'nt' else 'clear')
-            juego.imprimir_tablero()
-            print("\n🧀 ¡TIEMPO AGOTADO! El Ratón ha logrado escapar del laboratorio. 🧀")
-            print("🏆 ¡GANA EL RATÓN! 🏆")
-            break
+        elif modo == "2" or modo == "3": # La IA es el Gato
+            if modo == "2": 
+                print("🤖 El Gato IA está pensando...")
+                # time.sleep(0.5) # Descomenta si quieres darle dramatismo
+            juego.mover_gato_inteligente()
+
+        if juego.juego_terminado():
+             os.system('cls' if os.name == 'nt' else 'clear')
+             print(f"--- TURNO {turno} ---")
+             juego.imprimir_tablero()
+             print("\n🏁 ¡EL GATO ATRAPÓ AL RATÓN! 🏁")
+             break
         
-        # 4. PAUSA (Animación)
-        # Esperamos 0.8 segundos para que el ojo humano vea el movimiento
-        time.sleep(0.8) 
+        if modo == "3":
+            time.sleep(0.5)
         
         turno += 1
+    
+    if turno > MAX_TURNOS:
+        print("\n⏳ ¡SE ACABÓ EL TIEMPO! El Ratón sobrevivió.")
