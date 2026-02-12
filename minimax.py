@@ -1,98 +1,88 @@
-import random 
-import os   
-import time 
+import random # importamos random para que la ia haga movimientos al azar si tiene opciones igual de buenas 
+import os   # le dice al sistema operativo que limpie la pantalla cada cierto periodo de tiempo 
+import time # el lapso de tiempo en que la pantalla es limpiada y re impresa 
 
-class Laberinto:   
-    def __init__(self, ancho=10, alto=10):
+class Laberinto:   #creamos la clase que albergara todo el jurgo
+    def __init__(self, ancho=10, alto=10): #empezamos definiendo los limites del mapa y la posicion de los personajes 
         self.ancho = ancho
         self.alto = alto
         self.pos_gato = (5, 5)
         self.pos_raton = (ancho - 1, alto - 1)
         self.pos_salida = (0, 0)
-      
-        self.evaluacion_posicional = [] 
             
-    def imprimir_tablero(self):
-        print("\n" + "=" * (self.ancho * 3 + 2))
-        for y in range(self.alto):
-            fila_piezas = []
-            for x in range(self.ancho):
-                if (x, y) == self.pos_gato:
-                    fila_piezas.append(" 🐱")
+    def imprimir_tablero(self):   #lo que permite que veamos el juego
+        print("\n" + "=" * (self.ancho * 3 + 2)) # imprimimos "===" para darle "techo" y "suelo" igual al ancho x3 +2
+        for y in range(self.alto): # se empieza a dibujar el tablero fila por fila de arriba a abajo empezando en y0
+            fila_piezas = [] #se almacenan los caracteres en una lista antes de ser impreso 
+            for x in range(self.ancho):  #ahora de izquierda a derecha empezando en x0
+                if (x, y) == self.pos_gato: 
+                    fila_piezas.append(" 🐱")  #si en la x y en la y se encuentra posicionado el gato, se agrega el gato a a la lista
                 elif (x, y) == self.pos_raton:
-                    fila_piezas.append(" 🐭")
+                    fila_piezas.append(" 🐭") #si en la x y en la y se encuentra posicionado el reton, se agrega el raton a la lista 
                 elif (x, y) == self.pos_salida:
-                    fila_piezas.append(" 🚪")
+                    fila_piezas.append(" 🚪") #se agrega la posicion de la salida a la lista
                 else:
-                    fila_piezas.append(" . ")
-            print("".join(fila_piezas))
+                    fila_piezas.append(" . ") #si no hay nada se agrega un punto a la lista
+            print("".join(fila_piezas))  #se imprime la lista de forma limpia y entendible 
         print("=" * (self.ancho * 3 + 2) + "\n")
 
-    def realizar_movimiento_manual(self, personajes, tecla):
-        direcciones = {
-            'w': (0, -1), # Arriba
-            's': (0, 1),  # Abajo
-            'a': (-1, 0), # Izquierda
-            'd': (1, 0)   # Derecha
+    def realizar_movimiento_manual(self, personajes, tecla): #movimientos para el jugador 
+        direcciones = {    #hacemos un diccionario y le asignamos claves y valores que puedan ser equivalentes a una coordenada 
+            'w': (0, -1), # tecla Arriba : se resta 1 a y
+            's': (0, 1),  # tecla Abajo: se resta 1 a y 
+            'a': (-1, 0), # tecla Izquierda: se resta 1 a x
+            'd': (1, 0)   #tecla Derecha: se suma 1 a x
         }
-        
         if tecla not in direcciones:
-            print('Tecla inválida, usa W, A, S, D.')
+            print('Tecla inválida, usa W, A, S, D.')  #si se presiona una tecla fuera del diccionario devuelve este mensaje
             return
-            
-        dx, dy = direcciones[tecla]
-        
-        # 1. OBTENER POSICIÓN ACTUAL
-        if personajes == 'gato':
-            x, y = self.pos_gato
-        elif personajes == "raton":
-            x, y = self.pos_raton
+        dx, dy = direcciones[tecla] # busca en el diccionario que coordenadas corresponde a cada tecla pulsada
+        if personajes == 'gato':  
+            x, y = self.pos_gato  #si el personaje es el gato toma las coordenadas actuales del gato 
+        elif personajes == "raton": 
+            x, y = self.pos_raton #si eres el raton toma las coordenadas actuales del raton
         else:
             return
-
-        nuevo_x, nuevo_y = x + dx, y + dy 
-        
-        # 2. VERIFICAR SI CHOCA CON PAREDES Y ACTUALIZAR
-        if 0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto:
+        nuevo_x, nuevo_y = x + dx, y + dy # lectura y actualizacion de coordenadas
+        if 0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto: # evita que te salgas de la delimitacion del mapa 
             if personajes == "gato":
-                self.pos_gato = (nuevo_x, nuevo_y)
+                self.pos_gato = (nuevo_x, nuevo_y) #si la casilla es valida se actualiza la posicion del gato
             elif personajes == "raton":
-                self.pos_raton = (nuevo_x, nuevo_y)
+                self.pos_raton = (nuevo_x, nuevo_y) # si la casilla es valida se actualiza la posicion del raton
         else:
-            print("🚧 ¡Muro! No puedes avanzar por ahí.")
+            print("🚧 ¡Muro! No puedes avanzar por ahí.") # si trata de salirse de los margenes imprime este mensaje 
 
-    def obtener_movimientos_validos(self, posicion):
-        x, y = posicion
-        movimientos_posibles = []
+    def obtener_movimientos_validos(self, posicion): 
+        x, y = posicion # recibe la posicion en la que estas 
+        movimientos_posibles = [] #guarfa los movimientos legales que se encuentren
         direcciones = [
-            (0, -1), (0, 1), (-1, 0), (1, 0)
+            (0, -1), (0, 1), (-1, 0), (1, 0)       #direcciones permitidas
         ]
-        for dx, dy in direcciones:
-            nuevo_x = x + dx
-            nuevo_y = y + dy
-            if 0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto:
-                movimientos_posibles.append((nuevo_x, nuevo_y))
-        return movimientos_posibles
+        for dx, dy in direcciones: # itera por cada direccion posible asignando valor a las variables temporales dx,dy
+            nuevo_x = x + dx #recibe una posicion pero no se mueve solo lo analiza
+            nuevo_y = y + dy # la nueva posicion seria: la posicion actual (x) + el cambio (dx)
+            if 0 <= nuevo_x < self.ancho and 0 <= nuevo_y < self.alto: #verifica que la casilla analizada este dentro del tablero 
+                movimientos_posibles.append((nuevo_x, nuevo_y)) #si la casilla es valida pasa a la lista 
+        return movimientos_posibles #despues de analizar los movimientos entrega una lista completa de opciones segutas a quien las pidio
 
-    def distancia_manhattan(self, pos1, pos2):
-        x1, y1 = pos1
-        x2, y2 = pos2
-        return abs(x1 - x2) + abs(y1 - y2)
+    def distancia_manhattan(self, pos1, pos2): #distancia real que debe recorrer alguien que solo puede moverse en ángulos de 90 grados (Arriba, Abajo, Izquierda, Derecha).
+        x1, y1 = pos1 # posicion de un personaje 
+        x2, y2 = pos2 # posicion de otro personaje 
+        return abs(x1 - x2) + abs(y1 - y2) # calcula a cuantos turnos de distacia se encuentra un personaje de otro  (abs Convierte "diferencia matemática" en "distancia física".)
 
-    def minimax(self, pos_gato, pos_raton, profundidad, es_turno_gato):
+    def minimax(self, pos_gato, pos_raton, profundidad, es_turno_gato): # es una funcion recursiva 
         if pos_gato == pos_raton:
-            return 1000 + profundidad 
+            return 1000 + profundidad  #el gato atrapa al raton y gana 
         if pos_raton == self.pos_salida:
-            return -1000 - profundidad # Negativo porque es bueno para raton (minimizador)
+            return -1000 - profundidad #el raton logra llegar a la salida y escapa
 
-        if profundidad == 0:
-            dist_gato_raton = self.distancia_manhattan(pos_gato, pos_raton)
-            dist_salida = self.distancia_manhattan(pos_raton, self.pos_salida)
-            
-            # El gato quiere minimizar distancia al raton y maximizar distancia a salida
-            # El raton quiere maximizar distancia al gato y minimizar distancia a salida
-            # Formula: (Cerca Ratón) + (Ratón Lejos Salida)
-            puntaje = -dist_gato_raton + (dist_salida * 2)
+        if profundidad == 0:   #Cuando la IA deja de predecir el futuro (profundidad 0), mide dos cosas: la distancia entre los animales y la distancia a la salida
+            dist_gato_raton = self.distancia_manhattan(pos_gato, pos_raton) #¿Qué tan cerca está el depredador de la presa?
+            dist_salida = self.distancia_manhattan(pos_raton, self.pos_salida) #¿Qué tan cerca está el Ratón de salvarse?
+      
+            puntaje = -dist_gato_raton + (dist_salida * 2) #fórmula matemática para convertir esas distancias en puntos.
+                                                            #el gato gana puntos si se acerca a su presa, y el Ratón gane puntos (haciendo el número más bajo) si se acerca a la puerta. 
+                                                            # El * 2 es simplemente para que el Ratón le dé más prioridad a escapar que a esconderse.
             return puntaje
 
         if es_turno_gato:
@@ -116,8 +106,8 @@ class Laberinto:
         opciones = self.obtener_movimientos_validos(self.pos_gato)
         
         for opcion in opciones:
-            # --- CORRECCIÓN CRÍTICA AQUÍ: Cambiamos 42 por 4 ---
-            puntaje = self.minimax(opcion, self.pos_raton, 2, False)
+         
+            puntaje = self.minimax(opcion, self.pos_raton, 4, False)
             if puntaje > mejor_puntaje:
                 mejor_puntaje = puntaje
                 mejores_opciones = [opcion]
@@ -131,7 +121,7 @@ class Laberinto:
         mejores_opciones = []
         opciones = self.obtener_movimientos_validos(self.pos_raton)
         
-        # Instinto de supervivencia: Si ve la salida, la toma
+        
         if self.pos_salida in opciones:
             self.pos_raton = self.pos_salida
             return
@@ -153,7 +143,7 @@ class Laberinto:
             return True
         return False
 
-# --- ZONA DE JUEGO ---
+
 if __name__ == "__main__":
     juego = Laberinto()
     MAX_TURNOS = 30
@@ -180,11 +170,11 @@ if __name__ == "__main__":
                 print("\n🏁 ¡EL GATO ATRAPÓ AL RATÓN! 🏁")
             break
 
-        # --- TURNO DEL RATÓN ---
-        if modo == "2": # Tu eres el Ratón
+       
+        if modo == "2":
             move = input("Tu turno Ratón (WASD + Enter): ").lower()
             juego.realizar_movimiento_manual("raton", move)
-        elif modo == "1" or modo == "3": # La IA es el Ratón
+        elif modo == "1" or modo == "3": 
             juego.mover_raton_inteligente()
 
         if juego.juego_terminado():
@@ -200,18 +190,18 @@ if __name__ == "__main__":
                  print("\n🏁 ¡EL RATÓN CHOCÓ CON EL GATO! 🏁")
                  break
 
-        # --- TURNO DEL GATO ---
-        if modo == "1": # Tu eres el Gato
+       
+        if modo == "1": 
             os.system('cls' if os.name == 'nt' else 'clear')
             print(f"--- TURNO {turno} de {MAX_TURNOS} ---")
             juego.imprimir_tablero()
             move = input("Tu turno Gato (WASD + Enter): ").lower()
             juego.realizar_movimiento_manual("gato", move)
             
-        elif modo == "2" or modo == "3": # La IA es el Gato
+        elif modo == "2" or modo == "3":
             if modo == "2": 
                 print("🤖 El Gato IA está pensando...")
-                # time.sleep(0.5) # Descomenta si quieres darle dramatismo
+                
             juego.mover_gato_inteligente()
 
         if juego.juego_terminado():
