@@ -9,7 +9,7 @@ class Laberinto:
         self.pos_gato = (5, 5)
         self.pos_raton = (ancho - 1, alto - 1)
         self.pos_salida = (0, 0)
-        # Mapa de Calor 8x8 (o adaptable) para ayudar a la IA
+      
         self.evaluacion_posicional = [] 
             
     def imprimir_tablero(self):
