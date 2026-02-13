@@ -87,11 +87,11 @@ class Laberinto:   #creamos la clase que albergara todo el jurgo
 
         if es_turno_gato:
             max_puntuacion = -float('inf')
-            movimientos = self.obtener_movimientos_validos(pos_gato)
+            movimientos = self.obtener_movimientos_validos(pos_gato)  #analiza movimientos posibles desde la posicion actual 
             for move in movimientos:
-                puntuacion = self.minimax(move, pos_raton, profundidad - 1, False)
-                max_puntuacion = max(max_puntuacion, puntuacion)
-            return max_puntuacion
+                puntuacion = self.minimax(move, pos_raton, profundidad - 1, False) #si realiza ese movimiento que es lo que realizara el oponente
+                max_puntuacion = max(max_puntuacion, puntuacion) #compara la mejor jugada hasta ahora con la puntuacion, si la puntuacion es mejor se convierte en el nuevo record
+            return max_puntuacion #Devuelve el puntaje más alto que encontró de todas las opciones.
         else:
             min_puntuacion = float('inf')
             movimientos = self.obtener_movimientos_validos(pos_raton)
